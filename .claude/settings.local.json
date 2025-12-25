@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip3 list:*)",
+      "Bash(pip3 install:*)",
+      "Bash(brew install:*)",
+      "Bash(python3 backend.py --yes)",
+      "Bash(cat:*)",
+      "Bash(rm:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)"
+    ]
+  }
+}
