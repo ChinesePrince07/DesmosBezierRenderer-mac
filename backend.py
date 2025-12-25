@@ -1,8 +1,9 @@
 import json
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask import request
 from flask import render_template
+from werkzeug.utils import secure_filename
 
 from PIL import Image
 import numpy as np
@@ -142,6 +143,44 @@ def client():
             height=height.value, width=width.value, total_frames=len(frame_files), download_images=DOWNLOAD_IMAGES, show_grid=SHOW_GRID, screenshot_size=SCREENSHOT_SIZE, screenshot_format=SCREENSHOT_FORMAT)
 
 
+@app.route("/upload", methods=['POST'])
+def upload():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    # Check file extension
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in allowed_extensions:
+        return jsonify({'error': 'Invalid file type. Use PNG, JPG, GIF, or BMP'}), 400
+
+    # Get frame number from request or default to 1
+    frame_num = request.form.get('frame', 1, type=int)
+
+    # Save file
+    filename = f'frame{frame_num}.{FILE_EXT}'
+    filepath = os.path.join(FRAME_DIR, filename)
+    file.save(filepath)
+
+    # Update dimensions
+    img = cv2.imread(filepath)
+    if img is not None:
+        height.value = max(height.value, img.shape[0])
+        width.value = max(width.value, img.shape[1])
+
+    return jsonify({'success': True, 'filename': filename, 'frame': frame_num})
+
+
+@app.route("/frames", methods=['GET'])
+def list_frames():
+    frame_files = sorted([f for f in os.listdir(FRAME_DIR) if not f.startswith('.') and f.startswith('frame')])
+    return jsonify({'frames': frame_files, 'total': len(frame_files)})
+
+
 if __name__ == '__main__':
 
     try:
@@ -204,14 +243,14 @@ if __name__ == '__main__':
 ''')
         print('                   BEZIER RENDERER')
         print('Andy 2025')
-        print('https://github.com/kevinjycui/DesmosBezierRenderer')
+        print('https://github.com/ChinesePrince07/DesmosBezierRenderer-mac')
 
         print('''
  = COPYRIGHT =
-©Copyright Junferno 2021-2023. This program is licensed under the [GNU General Public License](https://github.com/kevinjycui/DesmosBezierRenderer/blob/master/LICENSE). Please provide proper credit to the author (Junferno) in any public media that uses this software. Desmos Bezier Renderer is in no way, shape, or form endorsed by or associated with Desmos, Inc.
+©Copyright Andy 2025. Based on original work by Junferno. This program is licensed under the GNU General Public License. Desmos Bezier Renderer is in no way, shape, or form endorsed by or associated with Desmos, Inc.
 
  = EULA =
-By using Desmos Bezier Renderer, you agree to comply to the [Desmos Terms of Service](https://www.desmos.com/terms). The Software and related documentation are provided “AS IS” and without any warranty of any kind. Desmos Bezier Renderer is not responsible for any User application or modification that constitutes a breach in terms. User acknowledges and agrees that the use of the Software is at the User's sole risk. The developer kindly asks Users to not use Desmos Bezier Renderer to enter into Desmos Math Art competitions, for the purpose of maintaining fairness and integrity.
+By using Desmos Bezier Renderer, you agree to comply to the Desmos Terms of Service (https://www.desmos.com/terms). The Software and related documentation are provided "AS IS" and without any warranty of any kind.
 ''')
 
         while eula != 'y':

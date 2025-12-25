@@ -3,9 +3,215 @@
    <head>
       <title>Desmos | Graphing Calculator</title>
       <link rel='icon' href='https://www.desmos.com/assets/img/apps/graphing/favicon.ico'>
+      <style>
+         #upload-panel {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: #fff;
+            border: 2px solid #2464b4;
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 250px;
+         }
+         #upload-panel h3 {
+            margin: 0 0 10px 0;
+            color: #2464b4;
+            font-size: 14px;
+         }
+         #drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+            color: #666;
+         }
+         #drop-zone:hover, #drop-zone.dragover {
+            border-color: #2464b4;
+            background: #f0f7ff;
+         }
+         #drop-zone.dragover {
+            transform: scale(1.02);
+         }
+         #file-input {
+            display: none;
+         }
+         #upload-status {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+         }
+         #upload-status.success {
+            color: #28a745;
+         }
+         #upload-status.error {
+            color: #dc3545;
+         }
+         #render-btn {
+            margin-top: 10px;
+            width: 100%;
+            padding: 8px;
+            background: #2464b4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+         }
+         #render-btn:hover {
+            background: #1a4a8a;
+         }
+         #render-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+         }
+         #toggle-panel {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: #2464b4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 12px;
+            cursor: pointer;
+            z-index: 999;
+            font-size: 12px;
+            display: none;
+         }
+      </style>
    </head>
    <div id='calculator' style='width: 100%; height: 100%;'></div>
+
+   <div id='upload-panel'>
+      <h3>Upload Image</h3>
+      <div id='drop-zone'>
+         Drop image(s) here<br>or click to browse
+      </div>
+      <input type='file' id='file-input' accept='image/*' multiple>
+      <div id='upload-status'></div>
+      <button id='render-btn'>Render Uploaded Image</button>
+   </div>
+   <button id='toggle-panel'>Show Upload</button>
+
    <script>
+        // Upload functionality
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const uploadStatus = document.getElementById('upload-status');
+        const renderBtn = document.getElementById('render-btn');
+        const uploadPanel = document.getElementById('upload-panel');
+        const togglePanel = document.getElementById('toggle-panel');
+        let uploadedFrame = null;
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+            if (files.length > 0) {
+                uploadFiles(files);
+            } else {
+                showStatus('Please drop image file(s)', 'error');
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                uploadFiles(Array.from(e.target.files));
+            }
+        });
+
+        async function uploadFiles(files) {
+            // Sort files by name for proper frame ordering
+            files.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
+
+            showStatus(`Uploading ${files.length} file(s)...`, '');
+            renderBtn.disabled = true;
+
+            let uploaded = 0;
+            let lastFrame = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const frameNum = i + 1;
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('frame', frameNum);
+
+                try {
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        uploaded++;
+                        lastFrame = data.frame;
+                        showStatus(`Uploaded ${uploaded}/${files.length}: ${file.name}`, '');
+                    } else {
+                        showStatus(`Failed: ${file.name} - ${data.error}`, 'error');
+                    }
+                } catch (err) {
+                    showStatus(`Failed: ${file.name} - ${err.message}`, 'error');
+                }
+            }
+
+            if (uploaded > 0) {
+                showStatus(`Uploaded ${uploaded} frame(s)`, 'success');
+                uploadedFrame = 1;
+                totalUploadedFrames = uploaded;
+                renderBtn.disabled = false;
+                renderBtn.textContent = uploaded > 1 ? `Render ${uploaded} Frames` : 'Render Uploaded Image';
+            }
+        }
+
+        let totalUploadedFrames = 0;
+
+        function showStatus(msg, type) {
+            uploadStatus.textContent = msg;
+            uploadStatus.className = type;
+        }
+
+        renderBtn.addEventListener('click', () => {
+            if (uploadedFrame !== null) {
+                calculator.setExpression({ id: 'frame', latex: 'f=' + uploadedFrame });
+            }
+        });
+
+        // Toggle panel visibility
+        togglePanel.addEventListener('click', () => {
+            uploadPanel.style.display = 'block';
+            togglePanel.style.display = 'none';
+        });
+
+        // Close panel functionality (click outside)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                uploadPanel.style.display = 'none';
+                togglePanel.style.display = 'block';
+            }
+        });
+
+        // Desmos calculator functionality
         var elt = document.getElementById('calculator');
         var calculator = Desmos.GraphingCalculator(elt);
 
@@ -68,18 +274,18 @@
                 setTimeout(() => renderFrame(--f.numericValue), 3000); // Wait for additional keystrokes
             });
         }, 500);
-        
+
         defaultState = calculator.getState(); // setBlank resets graph settings, this doesn't
         defaultState.graph.showGrid = defaultState.graph.showXAxis = defaultState.graph.showYAxis = {{ show_grid|tojson }};
 
         var tmpState = calculator.getState();
-        tmpState.expressions.list.push({type: 'text', id: 'info', text: 'Hello and welcome to your Desmos rendering!\n\nYou will notice two variables:\n\t𝙛 represents the current frame (for if you are rendering an animation).\n\t𝙇 represents the number of Bezier curves currently displayed to make up your image.\n\n𝘉𝘦𝘻𝘪𝘦𝘳 𝘤𝘶𝘳𝘷𝘦𝘴 𝘢𝘳𝘦 𝘰𝘧𝘵𝘦𝘯 𝘶𝘴𝘦𝘥 𝘪𝘯 𝘷𝘦𝘤𝘵𝘰𝘳 𝘨𝘳𝘢𝘱𝘩𝘪𝘤𝘴 𝘱𝘳𝘰𝘨𝘳𝘢𝘮𝘴 𝘵𝘰 𝘥𝘪𝘴𝘱𝘭𝘢𝘺 𝘪𝘮𝘢𝘨𝘦𝘴 𝘴𝘶𝘤𝘩 𝘢𝘴 𝘵𝘩𝘦 𝘰𝘯𝘦𝘴 𝘺𝘰𝘶 𝘸𝘪𝘭𝘭 𝘴𝘦𝘦 𝘴𝘰𝘰𝘯!\n\n𝗧𝗼 𝗯𝗲𝗴𝗶𝗻 𝗿𝗲𝗻𝗱𝗲𝗿𝗶𝗻𝗴 𝗳𝗿𝗼𝗺 𝘁𝗵𝗲 𝘀𝘁𝗮𝗿𝘁, 𝘀𝗲𝘁 𝗳=𝟏.'});
+        tmpState.expressions.list.push({type: 'text', id: 'info', text: 'Hello and welcome to your Desmos rendering!\n\nYou will notice two variables:\n\t𝙛 represents the current frame (for if you are rendering an animation).\n\t𝙇 represents the number of Bezier curves currently displayed to make up your image.\n\n𝘉𝘦𝘻𝘪𝘦𝘳 𝘤𝘶𝘳𝘷𝘦𝘴 𝘢𝘳𝘦 𝘰𝘧𝘵𝘦𝘯 𝘶𝘴𝘦𝘥 𝘪𝘯 𝘷𝘦𝘤𝘵𝘰𝘳 𝘨𝘳𝘢𝘱𝘩𝘪𝘤𝘴 𝘱𝘳𝘰𝘨𝘳𝘢𝘮𝘴 𝘵𝘰 𝘥𝘪𝘴𝘱𝘭𝘢𝘺 𝘪𝘮𝘢𝘨𝘦𝘴 𝘴𝘶𝘤𝘩 𝘢𝘴 𝘵𝘩𝘦 𝘰𝘯𝘦𝘴 𝘺𝘰𝘶 𝘸𝘪𝘭𝘭 𝘴𝘦𝘦 𝘴𝘰𝘰𝘯!\n\n𝗧𝗼 𝗯𝗲𝗴𝗶𝗻 𝗿𝗲𝗻𝗱𝗲𝗿𝗶𝗻𝗴 𝗳𝗿𝗼𝗺 𝘁𝗵𝗲 𝘀𝘁𝗮𝗿𝘁, 𝘀𝗲𝘁 𝗳=𝟏.\n\nOr use the Upload panel (bottom right) to upload image(s) directly!'});
         calculator.setState(tmpState);
 
         async function renderFrame(frame) {
-            
+
             const requestData = (frame) => {
-            
+
                 return new Promise((resolve, reject) => {
 
                     xhr = new XMLHttpRequest();
@@ -115,7 +321,7 @@
                         targetPixelRatio: 1,
                         format: {{ screenshot_format|tojson }}
                     }
-                    
+
                     function finishRender() {
                         return new Promise(resolve => {
                              // Waits for frame to render, takes a screenshot and runs handleScreenshot
@@ -162,7 +368,7 @@
             imgcont.download = 'frame-' + String(frame).padStart(5, '0');
             imgcont.innerHTML = `<img src= ${screenshot_uri}>`;
             imgcont.click();
-            
+
         }
    </script>
 </html>
