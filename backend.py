@@ -1,8 +1,6 @@
 import json
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, render_template, redirect
 from flask_cors import CORS
-from flask import request
-from flask import render_template
 from werkzeug.utils import secure_filename
 
 from PIL import Image
@@ -131,6 +129,10 @@ def health():
 
 @app.route('/')
 def index():
+    # If no frame parameter, redirect to calculator
+    if 'frame' not in request.args:
+        return redirect('/calculator')
+
     try:
         frame_num = int(request.args.get('frame', 0))
         frame_files = [f for f in os.listdir(FRAME_DIR) if not f.startswith('.')]
