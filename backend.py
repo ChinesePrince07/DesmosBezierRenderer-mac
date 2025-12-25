@@ -10,7 +10,6 @@ import numpy as np
 import potrace
 import cv2
 
-import multiprocessing
 from time import time
 import os
 import sys
@@ -38,10 +37,8 @@ DOWNLOAD_IMAGES = False # Download each rendered frame automatically (works best
 USE_L2_GRADIENT = False # Creates less edges but is still accurate (leads to faster renders)
 SHOW_GRID = True # Show the grid in the background while rendering
 
-frame = multiprocessing.Value('i', 0)
-height = multiprocessing.Value('i', 0, lock = False)
-width = multiprocessing.Value('i', 0, lock = False)
-frame_latex = 0
+height = 480
+width = 640
 
 
 def help():
@@ -75,11 +72,9 @@ def get_contours(filename, nudge = .33):
     else:
         edged = cv2.Canny(gray, 30, 200)
 
-    with frame.get_lock():
-        frame.value += 1
-        height.value = max(height.value, image.shape[0])
-        width.value = max(width.value, image.shape[1])
-    print('\r--> Frame %d/%d' % (frame.value, len(os.listdir(FRAME_DIR))), end='')
+    global height, width
+    height = max(height, image.shape[0])
+    width = max(width, image.shape[1])
 
     return edged[::-1]
 
@@ -141,7 +136,7 @@ def index():
 def client():
     frame_files = [f for f in os.listdir(FRAME_DIR) if not f.startswith('.')]
     return render_template('index.html', api_key='dcb31709b452b1cf9dc26972add0fda6', # Development-only API_key. See https://www.desmos.com/api/v1.8/docs/index.html#document-api-keys
-            height=height.value, width=width.value, total_frames=len(frame_files), download_images=DOWNLOAD_IMAGES, show_grid=SHOW_GRID, screenshot_size=SCREENSHOT_SIZE, screenshot_format=SCREENSHOT_FORMAT)
+            height=height, width=width, total_frames=len(frame_files), download_images=DOWNLOAD_IMAGES, show_grid=SHOW_GRID, screenshot_size=SCREENSHOT_SIZE, screenshot_format=SCREENSHOT_FORMAT)
 
 
 @app.route("/upload", methods=['POST'])
@@ -168,10 +163,11 @@ def upload():
     file.save(filepath)
 
     # Update dimensions
+    global height, width
     img = cv2.imread(filepath)
     if img is not None:
-        height.value = max(height.value, img.shape[0])
-        width.value = max(width.value, img.shape[1])
+        height = max(height, img.shape[0])
+        width = max(width, img.shape[1])
 
     return jsonify({'success': True, 'filename': filename, 'frame': frame_num})
 
@@ -226,70 +222,50 @@ if __name__ == '__main__':
                 if arg not in ('svg', 'png'):
                     raise ValueError
                 SCREENSHOT_FORMAT = arg
-                
-        frame_latex =  range(len(os.listdir(FRAME_DIR)))
 
     except (TypeError, ValueError):
         print('Error: Invalid argument(s)\n')
         help()
         sys.exit(2)
 
-    with multiprocessing.Pool(processes = multiprocessing.cpu_count()) as pool:
-        print(r'''  _____
+    # Ensure frames directory exists
+    os.makedirs(FRAME_DIR, exist_ok=True)
+
+    print(r'''  _____
  |  __ \
  | |  | | ___  ___ _ __ ___   ___  ___
  | |  | |/ _ \/ __| '_ ` _ \ / _ \/ __|
  | |__| |  __/\__ \ | | | | | (_) \__ \
  |_____/ \___||___/_| |_| |_|\___/|___/
 ''')
-        print('                   BEZIER RENDERER')
-        print('Andy 2025')
-        print('https://github.com/ChinesePrince07/DesmosBezierRenderer-mac')
+    print('                   BEZIER RENDERER')
+    print('Andy 2025')
+    print('https://github.com/ChinesePrince07/DesmosBezierRenderer-mac')
 
-        print('''
+    print('''
  = COPYRIGHT =
-©Copyright Andy 2025. Based on original work by Junferno. This program is licensed under the GNU General Public License. Desmos Bezier Renderer is in no way, shape, or form endorsed by or associated with Desmos, Inc.
+©Copyright Andy 2025. This program is licensed under the MIT License.
 
  = EULA =
-By using Desmos Bezier Renderer, you agree to comply to the Desmos Terms of Service (https://www.desmos.com/terms). The Software and related documentation are provided "AS IS" and without any warranty of any kind.
+By using Desmos Bezier Renderer, you agree to comply to the Desmos Terms of Service (https://www.desmos.com/terms).
 ''')
 
-        while eula != 'y':
-            eula = input('                                      Agree (y/n)? ')
-            if eula == 'n':
-                quit()
+    while eula != 'y':
+        eula = input('                                      Agree (y/n)? ')
+        if eula == 'n':
+            quit()
 
-        print('-----------------------------')
+    print('-----------------------------')
+    print('Server starting... Frames will be processed on-demand.')
+    print('\t\t===========================================================================')
+    print('\t\t|| GO CHECK OUT YOUR RENDER NOW AT:\t\t\t\t\t ||')
+    print('\t\t||\t\t\thttp://127.0.0.1:%d/calculator\t\t ||' % PORT)
+    print('\t\t===========================================================================\n')
 
-        print('Processing %d frames... Please wait for processing to finish before running on frontend\n' % len(os.listdir(FRAME_DIR)))
+    if OPEN_BROWSER:
+        def open_browser():
+            webbrowser.open('http://127.0.0.1:%d/calculator' % PORT)
+        Timer(1, open_browser).start()
 
-        start = time()
-
-        try:
-            frame_latex = pool.map(get_expressions, frame_latex)
-        except cv2.error as e:
-            print('[ERROR] Unable to process one or more files. Remember image files should be named <DIRECTORY>/frame<INDEX>.<EXTENSION> where INDEX represents the frame number starting from 1 and DIRECTORY and EXTENSION are defined by command line arguments (e.g. frames/frame1.png). Please check if:\n\tThe files exist\n\tThe files are all valid image files\n\tThe name of the files given is correct as per command line arguments\n\tThe program has the necessary permissions to read the file.\n\nUse backend.py -h for further documentation\n')            
-
-            print('-----------------------------')
-
-            print('Full error traceback:\n')
-            traceback.print_exc()
-            sys.exit(2)
-
-        print('\r--> Processing complete in %.1f seconds\n' % (time() - start))
-        print('\t\t===========================================================================')
-        print('\t\t|| GO CHECK OUT YOUR RENDER NOW AT:\t\t\t\t\t ||')
-        print('\t\t||\t\t\thttp://127.0.0.1:%d/calculator\t\t ||' % PORT)
-        print('\t\t===========================================================================\n')
-        print('=== SERVER LOG (Ignore if not dev) ===')
-
-        # with open('cache.json', 'w+') as f:
-        #     json.dump(frame_latex, f)
-
-        if OPEN_BROWSER:
-            def open_browser():
-                webbrowser.open('http://127.0.0.1:%d/calculator' % PORT)
-            Timer(1, open_browser).start()
-
-        # Use 0.0.0.0 in production (Railway), 127.0.0.1 locally
-        app.run(host='0.0.0.0', port=PORT)
+    # Use 0.0.0.0 in production (Railway), 127.0.0.1 locally
+    app.run(host='0.0.0.0', port=PORT)
