@@ -38,7 +38,7 @@ pip3 install flask flask-cors numpy opencv-python-headless pillow pypotrace
 ### Start the Server
 
 ```sh
-python3 backend.py --yes
+python3 backend.py 
 ```
 
 Open `http://127.0.0.1:5000/calculator` in your browser.
