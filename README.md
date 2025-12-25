@@ -104,6 +104,16 @@ Processing 1 frames...
 
 ![](github/final.png)
 
+## Deploy to Railway
+
+1. Push this repo to GitHub
+2. Go to [railway.app](https://railway.app) and create a new project
+3. Select "Deploy from GitHub repo"
+4. Choose your repo - Railway auto-detects the config
+5. Once deployed, open the provided URL + `/calculator`
+
+Railway will automatically install potrace and all dependencies.
+
 ## License
 
 MIT License. Andy 2025.

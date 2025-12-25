@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["potrace", "libagg", "pkg-config"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmd = "python backend.py --yes --no-browser"

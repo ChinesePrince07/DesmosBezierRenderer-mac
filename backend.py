@@ -22,7 +22,8 @@ from threading import Timer
 
 app = Flask(__name__, template_folder='frontend')
 CORS(app)
-PORT = 5000
+PORT = int(os.environ.get('PORT', 5000))
+HOST = os.environ.get('HOST', '127.0.0.1')
 
 
 FRAME_DIR = 'frames' # The folder where the frames are stored relative to this file
@@ -290,4 +291,5 @@ By using Desmos Bezier Renderer, you agree to comply to the Desmos Terms of Serv
                 webbrowser.open('http://127.0.0.1:%d/calculator' % PORT)
             Timer(1, open_browser).start()
 
-        app.run(host='127.0.0.1', port=PORT)
+        # Use 0.0.0.0 in production (Railway), 127.0.0.1 locally
+        app.run(host='0.0.0.0', port=PORT)

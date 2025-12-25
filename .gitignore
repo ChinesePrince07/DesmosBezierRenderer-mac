@@ -8,7 +8,7 @@
 *.webm
 
 !github/*.png
-!frames/*
+!frames/.gitkeep
 
 env
 env/*
