@@ -1,9 +1,18 @@
-<script src='https://www.desmos.com/api/v1.8/calculator.js?apiKey={{ api_key }}'></script>
+<!DOCTYPE html>
 <html lang='en'>
    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Desmos | Graphing Calculator</title>
       <link rel='icon' href='https://www.desmos.com/assets/img/apps/graphing/favicon.ico'>
+      <script src='https://www.desmos.com/api/v1.8/calculator.js?apiKey={{ api_key }}'></script>
       <style>
+         body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+         }
          #upload-panel {
             position: fixed;
             bottom: 10px;
@@ -87,59 +96,59 @@
          }
       </style>
    </head>
-   <div id='calculator' style='width: 100%; height: 100%;'></div>
+   <body>
+      <div id='calculator' style='width: 100%; height: 100%;'></div>
 
-   <div id='upload-panel'>
-      <h3>Upload Image</h3>
-      <div id='drop-zone'>
-         Drop image(s) here<br>or click to browse
+      <div id='upload-panel'>
+         <h3>Upload Image</h3>
+         <div id='drop-zone'>
+            Drop image(s) here<br>or click to browse
+         </div>
+         <input type='file' id='file-input' accept='image/*' multiple>
+         <div id='upload-status'></div>
+         <button id='render-btn'>Render Uploaded Image</button>
       </div>
-      <input type='file' id='file-input' accept='image/*' multiple>
-      <div id='upload-status'></div>
-      <button id='render-btn'>Render Uploaded Image</button>
-   </div>
-   <button id='toggle-panel'>Show Upload</button>
+      <button id='toggle-panel'>Show Upload</button>
 
-   <script>
-        // Upload functionality
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-        const uploadStatus = document.getElementById('upload-status');
-        const renderBtn = document.getElementById('render-btn');
-        const uploadPanel = document.getElementById('upload-panel');
-        const togglePanel = document.getElementById('toggle-panel');
-        let uploadedFrame = null;
+      <script>
+         // Upload functionality
+         const dropZone = document.getElementById('drop-zone');
+         const fileInput = document.getElementById('file-input');
+         const uploadStatus = document.getElementById('upload-status');
+         const renderBtn = document.getElementById('render-btn');
+         const uploadPanel = document.getElementById('upload-panel');
+         const togglePanel = document.getElementById('toggle-panel');
+         let uploadedFrame = null;
 
-        dropZone.addEventListener('click', () => fileInput.click());
+         dropZone.addEventListener('click', () => fileInput.click());
 
-        dropZone.addEventListener('dragover', (e) => {
+         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('dragover');
-        });
+         });
 
-        dropZone.addEventListener('dragleave', () => {
+         dropZone.addEventListener('dragleave', () => {
             dropZone.classList.remove('dragover');
-        });
+         });
 
-        dropZone.addEventListener('drop', (e) => {
+         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('dragover');
             const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
             if (files.length > 0) {
-                uploadFiles(files);
+               uploadFiles(files);
             } else {
-                showStatus('Please drop image file(s)', 'error');
+               showStatus('Please drop image file(s)', 'error');
             }
-        });
+         });
 
-        fileInput.addEventListener('change', (e) => {
+         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
-                uploadFiles(Array.from(e.target.files));
+               uploadFiles(Array.from(e.target.files));
             }
-        });
+         });
 
-        async function uploadFiles(files) {
-            // Sort files by name for proper frame ordering
+         async function uploadFiles(files) {
             files.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
 
             showStatus(`Uploading ${files.length} file(s)...`, '');
@@ -149,226 +158,213 @@
             let lastFrame = 0;
 
             for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                const frameNum = i + 1;
+               const file = files[i];
+               const frameNum = i + 1;
 
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('frame', frameNum);
+               const formData = new FormData();
+               formData.append('file', file);
+               formData.append('frame', frameNum);
 
-                try {
-                    const response = await fetch('/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await response.json();
+               try {
+                  const response = await fetch('/upload', {
+                     method: 'POST',
+                     body: formData
+                  });
+                  const data = await response.json();
 
-                    if (data.success) {
-                        uploaded++;
-                        lastFrame = data.frame;
-                        showStatus(`Uploaded ${uploaded}/${files.length}: ${file.name}`, '');
-                    } else {
-                        showStatus(`Failed: ${file.name} - ${data.error}`, 'error');
-                    }
-                } catch (err) {
-                    showStatus(`Failed: ${file.name} - ${err.message}`, 'error');
-                }
+                  if (data.success) {
+                     uploaded++;
+                     lastFrame = data.frame;
+                     showStatus(`Uploaded ${uploaded}/${files.length}: ${file.name}`, '');
+                  } else {
+                     showStatus(`Failed: ${file.name} - ${data.error}`, 'error');
+                  }
+               } catch (err) {
+                  showStatus(`Failed: ${file.name} - ${err.message}`, 'error');
+               }
             }
 
             if (uploaded > 0) {
-                showStatus(`Uploaded ${uploaded} frame(s)`, 'success');
-                uploadedFrame = 1;
-                totalUploadedFrames = uploaded;
-                renderBtn.disabled = false;
-                renderBtn.textContent = uploaded > 1 ? `Render ${uploaded} Frames` : 'Render Uploaded Image';
+               showStatus(`Uploaded ${uploaded} frame(s)`, 'success');
+               uploadedFrame = 1;
+               totalUploadedFrames = uploaded;
+               renderBtn.disabled = false;
+               renderBtn.textContent = uploaded > 1 ? `Render ${uploaded} Frames` : 'Render Uploaded Image';
             }
-        }
+         }
 
-        let totalUploadedFrames = 0;
+         let totalUploadedFrames = 0;
 
-        function showStatus(msg, type) {
+         function showStatus(msg, type) {
             uploadStatus.textContent = msg;
             uploadStatus.className = type;
-        }
+         }
 
-        renderBtn.addEventListener('click', () => {
+         renderBtn.addEventListener('click', () => {
             if (uploadedFrame !== null) {
-                calculator.setExpression({ id: 'frame', latex: 'f=' + uploadedFrame });
+               calculator.setExpression({ id: 'frame', latex: 'f=' + uploadedFrame });
             }
-        });
+         });
 
-        // Toggle panel visibility
-        togglePanel.addEventListener('click', () => {
+         togglePanel.addEventListener('click', () => {
             uploadPanel.style.display = 'block';
             togglePanel.style.display = 'none';
-        });
+         });
 
-        // Close panel functionality (click outside)
-        document.addEventListener('keydown', (e) => {
+         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                uploadPanel.style.display = 'none';
-                togglePanel.style.display = 'block';
+               uploadPanel.style.display = 'none';
+               togglePanel.style.display = 'block';
             }
-        });
+         });
 
-        // Desmos calculator functionality
-        var elt = document.getElementById('calculator');
-        var calculator = Desmos.GraphingCalculator(elt);
+         // Desmos calculator functionality
+         var elt = document.getElementById('calculator');
+         var calculator = Desmos.GraphingCalculator(elt);
 
-        var inner = elt.getElementsByClassName('dcg-graph-outer')[0]; // The part of the screen with a visible grid
-        var defaultState;
-        var hiddenGraph;
-        var latex;
+         var inner = elt.getElementsByClassName('dcg-graph-outer')[0];
+         var defaultState;
+         var hiddenGraph;
+         var latex;
 
-        function sleep(milliseconds) {
+         function sleep(milliseconds) {
             return new Promise(r => setTimeout(r, milliseconds));
-        }
+         }
 
-        async function changeGraph(latex) {
-            //console.log(latex);
-
+         async function changeGraph(latex) {
             var default_expressions = hiddenGraph.expressions.list.slice();
 
             for (var expr of latex) {
-                hiddenGraph.expressions.list.push({
-                    color: expr.color,
-                    id: expr.id,
-                    latex: expr.latex,
-                    type: "expression"
-                })
+               hiddenGraph.expressions.list.push({
+                  color: expr.color,
+                  id: expr.id,
+                  latex: expr.latex,
+                  type: "expression"
+               })
             }
 
             calculator.setState( hiddenGraph, {'allowUndo': false} );
             hiddenGraph.expressions.list = default_expressions;
 
             if (latex.length < 3000) {
-                await sleep(5000);
+               await sleep(5000);
             }
-        }
+         }
 
-        calculator.updateSettings({
+         calculator.updateSettings({
             showGrid: {{ show_grid|tojson }},
             showXAxis: {{ show_grid|tojson }},
             showYAxis: {{ show_grid|tojson }}
-        });
+         });
 
-        calculator.setMathBounds({
+         calculator.setMathBounds({
             left: 0,
             right: {{ width }},
             bottom: 0,
             top: {{ height }}
-        });
+         });
 
-        calculator.setExpression({ id: 'frame', latex: 'f=0', color: '#2464b4', sliderBounds: { step: 1, max: {{ total_frames }}, min: 0 } });
-        calculator.setExpression({ id: 'lines', latex: 'L=0', color: '#2464b4', sliderBounds: { step: 1, min: 0 } });
+         calculator.setExpression({ id: 'frame', latex: 'f=0', color: '#2464b4', sliderBounds: { step: 1, max: {{ total_frames }}, min: 0 } });
+         calculator.setExpression({ id: 'lines', latex: 'L=0', color: '#2464b4', sliderBounds: { step: 1, min: 0 } });
 
-        // This is used to set expressions off screen
-        hiddenGraph = calculator.getState();
+         hiddenGraph = calculator.getState();
 
-        const interval = setInterval(() => {
+         const interval = setInterval(() => {
             const f = calculator.HelperExpression({ latex: 'f' });
             f.observe('numericValue', () => {
-                f.unobserve('numericValue');
-                if (Number.isNaN(f.numericValue) || f.numericValue <= 0) return;
-                clearInterval(interval);
-                setTimeout(() => renderFrame(--f.numericValue), 3000); // Wait for additional keystrokes
+               f.unobserve('numericValue');
+               if (Number.isNaN(f.numericValue) || f.numericValue <= 0) return;
+               clearInterval(interval);
+               setTimeout(() => renderFrame(--f.numericValue), 3000);
             });
-        }, 500);
+         }, 500);
 
-        defaultState = calculator.getState(); // setBlank resets graph settings, this doesn't
-        defaultState.graph.showGrid = defaultState.graph.showXAxis = defaultState.graph.showYAxis = {{ show_grid|tojson }};
+         defaultState = calculator.getState();
+         defaultState.graph.showGrid = defaultState.graph.showXAxis = defaultState.graph.showYAxis = {{ show_grid|tojson }};
 
-        var tmpState = calculator.getState();
-        tmpState.expressions.list.push({type: 'text', id: 'info', text: 'Hello and welcome to your Desmos rendering!\n\nYou will notice two variables:\n\t𝙛 represents the current frame (for if you are rendering an animation).\n\t𝙇 represents the number of Bezier curves currently displayed to make up your image.\n\n𝘉𝘦𝘻𝘪𝘦𝘳 𝘤𝘶𝘳𝘷𝘦𝘴 𝘢𝘳𝘦 𝘰𝘧𝘵𝘦𝘯 𝘶𝘴𝘦𝘥 𝘪𝘯 𝘷𝘦𝘤𝘵𝘰𝘳 𝘨𝘳𝘢𝘱𝘩𝘪𝘤𝘴 𝘱𝘳𝘰𝘨𝘳𝘢𝘮𝘴 𝘵𝘰 𝘥𝘪𝘴𝘱𝘭𝘢𝘺 𝘪𝘮𝘢𝘨𝘦𝘴 𝘴𝘶𝘤𝘩 𝘢𝘴 𝘵𝘩𝘦 𝘰𝘯𝘦𝘴 𝘺𝘰𝘶 𝘸𝘪𝘭𝘭 𝘴𝘦𝘦 𝘴𝘰𝘰𝘯!\n\n𝗧𝗼 𝗯𝗲𝗴𝗶𝗻 𝗿𝗲𝗻𝗱𝗲𝗿𝗶𝗻𝗴 𝗳𝗿𝗼𝗺 𝘁𝗵𝗲 𝘀𝘁𝗮𝗿𝘁, 𝘀𝗲𝘁 𝗳=𝟏.\n\nOr use the Upload panel (bottom right) to upload image(s) directly!'});
-        calculator.setState(tmpState);
+         var tmpState = calculator.getState();
+         tmpState.expressions.list.push({type: 'text', id: 'info', text: 'Welcome to Desmos Bezier Renderer!\n\nVariables:\n  f = current frame\n  L = number of Bezier curves\n\nTo render: set f=1\n\nOr use the Upload panel (bottom right) to upload images directly!'});
+         calculator.setState(tmpState);
 
-        async function renderFrame(frame) {
-
+         async function renderFrame(frame) {
             const requestData = (frame) => {
-
-                return new Promise((resolve, reject) => {
-
-                    xhr = new XMLHttpRequest();
-                    xhr.open('GET', `/?frame=${frame}`);
-                    xhr.send();
-                    xhr.onload = () => {
-                        latex = JSON.parse(xhr.response);
-
-                        if (latex.result === null) {
-                            reject(`frame: ${frame} could not be rendered.`);
-                        } else {
-                            resolve(latex.result);
-                        }
-                    }
-                });
+               return new Promise((resolve, reject) => {
+                  xhr = new XMLHttpRequest();
+                  xhr.open('GET', `/?frame=${frame}`);
+                  xhr.send();
+                  xhr.onload = () => {
+                     latex = JSON.parse(xhr.response);
+                     if (latex.result === null) {
+                        reject(`frame: ${frame} could not be rendered.`);
+                     } else {
+                        resolve(latex.result);
+                     }
+                  }
+               });
             }
 
-            try { // Render each frame
-                var response = await requestData(frame);
-                while (frame < {{ total_frames }} && response) {
-                    hiddenGraph.expressions.list[0].latex = 'f=' + (frame + 1);
-                    hiddenGraph.expressions.list[1].latex = 'L=' + response.length;
+            try {
+               var response = await requestData(frame);
+               while (frame < {{ total_frames }} && response) {
+                  hiddenGraph.expressions.list[0].latex = 'f=' + (frame + 1);
+                  hiddenGraph.expressions.list[1].latex = 'L=' + response.length;
 
-                    // console.log('Lines for frame ' + (frame + 1) + ': ' + response.length);
+                  await changeGraph(response);
 
-                    await changeGraph(response);
+                  const params = {
+                     mode: 'contain',
+                     mathBounds: { left: 0, bottom: 0, right: {{ width }}, top: {{ height }} },
+                     width: {{ screenshot_size|tojson }}[0] || window.screen.width,
+                     height: {{ screenshot_size|tojson }}[1] || window.screen.height,
+                     targetPixelRatio: 1,
+                     format: {{ screenshot_format|tojson }}
+                  }
 
-                    const params = {
-                        mode: 'contain',
-                        mathBounds: { left: 0, bottom: 0, right: {{ width }}, top: {{ height }} },
-                        width: {{ screenshot_size|tojson }}[0] || window.screen.width,
-                        height: {{ screenshot_size|tojson }}[1] || window.screen.height,
-                        targetPixelRatio: 1,
-                        format: {{ screenshot_format|tojson }}
-                    }
-
-                    function finishRender() {
-                        return new Promise(resolve => {
-                             // Waits for frame to render, takes a screenshot and runs handleScreenshot
-                            calculator.asyncScreenshot(params, screenshot => {
-                                handleScreenshot(screenshot, frame +1);
-                                resolve('render has finished');
-                            });
+                  function finishRender() {
+                     return new Promise(resolve => {
+                        calculator.asyncScreenshot(params, screenshot => {
+                           handleScreenshot(screenshot, frame + 1);
+                           resolve('render has finished');
                         });
-                    }
+                     });
+                  }
 
-                    await finishRender();
+                  await finishRender();
 
-                    // this delay happens after the frame is rendered
-                    if (response.length >= 3000) { // a cooldown because this is a big file
-                        await sleep(5000);
-                    }
+                  if (response.length >= 3000) {
+                     await sleep(5000);
+                  }
 
-                    frame++;
-                    response = await requestData(frame);
-                }
+                  frame++;
+                  response = await requestData(frame);
+               }
             }
             catch (err) {
-                console.log(err);
+               console.log(err);
             }
-        }
+         }
 
-        const imgcont = document.createElement('a');
-        document.body.appendChild(imgcont);
-        async function handleScreenshot(screenshot, frame) {
+         const imgcont = document.createElement('a');
+         document.body.appendChild(imgcont);
 
+         async function handleScreenshot(screenshot, frame) {
             if (!{{ download_images|tojson }}) {
-                return;
+               return;
             }
 
             if ( {{ screenshot_format|tojson }} === 'png' ) {
-                screenshot_uri = screenshot;
+               screenshot_uri = screenshot;
             }
             else if ( {{ screenshot_format|tojson }} === 'svg' ) {
-                var svg_b64 = window.btoa(screenshot); // encode to base64
-                screenshot_uri = "data:image/svg+xml;base64," + svg_b64;
+               var svg_b64 = window.btoa(screenshot);
+               screenshot_uri = "data:image/svg+xml;base64," + svg_b64;
             }
 
             imgcont.href = screenshot_uri;
             imgcont.download = 'frame-' + String(frame).padStart(5, '0');
             imgcont.innerHTML = `<img src= ${screenshot_uri}>`;
             imgcont.click();
-
-        }
-   </script>
+         }
+      </script>
+   </body>
 </html>
