@@ -2,6 +2,8 @@
 
 Convert images and animations to Desmos graphs using Bezier curves. Uses Canny edge detection and Potrace to transform images into mathematical equations.
 
+**[Live Demo](https://desmosbezierrenderer-mac-production.up.railway.app/calculator)**
+
 ![](github/figures.png)
 
 ## Features
@@ -38,7 +40,7 @@ pip3 install flask flask-cors numpy opencv-python-headless pillow pypotrace
 ### Start the Server
 
 ```sh
-python3 backend.py 
+python3 backend.py
 ```
 
 Open `http://127.0.0.1:5000/calculator` in your browser.
@@ -103,16 +105,6 @@ Processing 1 frames...
 ```
 
 ![](github/final.png)
-
-## Deploy to Railway
-
-1. Push this repo to GitHub
-2. Go to [railway.app](https://railway.app) and create a new project
-3. Select "Deploy from GitHub repo"
-4. Choose your repo - Railway auto-detects the config
-5. Once deployed, open the provided URL + `/calculator`
-
-Railway will automatically install potrace and all dependencies.
 
 ## License
 
