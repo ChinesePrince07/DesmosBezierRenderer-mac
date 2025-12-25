@@ -26,6 +26,9 @@ HOST = os.environ.get('HOST', '127.0.0.1')
 
 
 FRAME_DIR = 'frames' # The folder where the frames are stored relative to this file
+
+# Ensure frames directory exists at startup
+os.makedirs(FRAME_DIR, exist_ok=True)
 FILE_EXT = 'png' # Extension for frame files
 COLOUR = '#2464b4' # Hex value of colour for graph output	
 SCREENSHOT_SIZE = [ None, None ] # [width, height] for downloaded images
@@ -121,22 +124,33 @@ def get_expressions(frame):
     return exprs
 
 
+@app.route('/health')
+def health():
+    return jsonify({'status': 'ok'})
+
+
 @app.route('/')
 def index():
-    frame_num = int(request.args.get('frame'))
-    frame_files = [f for f in os.listdir(FRAME_DIR) if not f.startswith('.')]
-    if frame_num >= len(frame_files):
-        return {'result': None}
+    try:
+        frame_num = int(request.args.get('frame', 0))
+        frame_files = [f for f in os.listdir(FRAME_DIR) if not f.startswith('.')]
+        if frame_num >= len(frame_files):
+            return jsonify({'result': None})
 
-    # Recompute frame on-the-fly to allow dynamic updates
-    return json.dumps({'result': get_expressions(frame_num) })
+        # Recompute frame on-the-fly to allow dynamic updates
+        return jsonify({'result': get_expressions(frame_num)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route("/calculator")
 def client():
-    frame_files = [f for f in os.listdir(FRAME_DIR) if not f.startswith('.')]
-    return render_template('index.html', api_key='dcb31709b452b1cf9dc26972add0fda6', # Development-only API_key. See https://www.desmos.com/api/v1.8/docs/index.html#document-api-keys
-            height=height, width=width, total_frames=len(frame_files), download_images=DOWNLOAD_IMAGES, show_grid=SHOW_GRID, screenshot_size=SCREENSHOT_SIZE, screenshot_format=SCREENSHOT_FORMAT)
+    try:
+        frame_files = [f for f in os.listdir(FRAME_DIR) if not f.startswith('.')]
+        return render_template('index.html', api_key='dcb31709b452b1cf9dc26972add0fda6', # Development-only API_key. See https://www.desmos.com/api/v1.8/docs/index.html#document-api-keys
+                height=height, width=width, total_frames=len(frame_files), download_images=DOWNLOAD_IMAGES, show_grid=SHOW_GRID, screenshot_size=SCREENSHOT_SIZE, screenshot_format=SCREENSHOT_FORMAT)
+    except Exception as e:
+        return f"Error: {str(e)}", 500
 
 
 @app.route("/upload", methods=['POST'])
