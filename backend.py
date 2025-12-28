@@ -19,7 +19,7 @@ from threading import Timer
 
 app = Flask(__name__, template_folder='frontend')
 CORS(app)
-PORT = int(os.environ.get('PORT', 5000))
+PORT = int(os.environ.get('PORT', 5001))
 HOST = os.environ.get('HOST', '127.0.0.1')
 
 
