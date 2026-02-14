@@ -2,7 +2,7 @@
 
 Convert images and animations to Desmos graphs using Bezier curves. Uses Canny edge detection and Potrace to transform images into mathematical equations. Fully functional Desmos.
 
-**[Live Demo]([https://desmosbezierrenderer-mac-production.up.railway.app/calculator](https://desmos.andypandy.org/calculator))**
+**[Live Demo](https://desmos.andypandy.org/calculator)**
 
 ![](github/figures.png)
 
@@ -50,7 +50,7 @@ Open `http://127.0.0.1:5000/calculator` in your browser.
 Use the upload panel in the **bottom-right corner**:
 
 1. **Single image**: Drop one image and click "Render Uploaded Image"
-2. **Animation**: Select multiple images (they'll be sorted by filename) and click "Render X Frames"
+2. **Animation**: Select multiple images (they will be sorted by filename) and click "Render X Frames"
 
 Files are automatically named `frame1.png`, `frame2.png`, etc.
 
